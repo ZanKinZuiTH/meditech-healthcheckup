@@ -18,8 +18,12 @@ We would like to express our gratitude to the following open-source projects and
 - [PyQt6](https://www.riverbankcomputing.com/software/pyqt/) - Python bindings for the Qt framework
 - [Qt-Material](https://github.com/UN-GCPDS/qt-material) - Material design for PyQt applications
 - [QDarkStyle](https://github.com/ColinDuquesnoy/QDarkStyle) - Dark stylesheet for Qt applications
+- [pyqtgraph](https://www.pyqtgraph.org/) - Scientific Graphics and GUI Library
 - [ReportLab](https://www.reportlab.com/) - PDF generation library
+- [XlsxWriter](https://xlsxwriter.readthedocs.io/) - Excel file creation
 - [Pillow](https://python-pillow.org/) - Python Imaging Library
+- [NumPy](https://numpy.org/) - Numerical computing library
+- [pandas](https://pandas.pydata.org/) - Data analysis library
 
 ### Database
 - [PostgreSQL](https://www.postgresql.org/) - Open source relational database

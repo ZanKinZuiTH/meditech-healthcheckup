@@ -2,175 +2,229 @@
 
 ## Overview
 
-MediTech HealthCheckup System provides a comprehensive RESTful API that allows you to interact with all aspects of the system programmatically. This documentation will help you understand how to use these APIs effectively.
+MediTech HealthCheckup System API provides RESTful endpoints for managing health checkups, medical records, and system operations.
 
-## Base URL
-
-All API URLs are relative to:
-```
-http://localhost:8000/api/v1
-```
+Base URL: `http://api.meditech.com/v1`
 
 ## Authentication
 
-Most API endpoints require authentication. We use JWT (JSON Web Tokens) for authentication.
+All API requests require authentication using JWT (JSON Web Token).
 
-### Getting a Token
-
-```http
-POST /auth/token
-Content-Type: application/json
-
-{
-    "username": "your_username",
-    "password": "your_password"
-}
+### Headers
+```
+Authorization: Bearer <token>
 ```
 
-### Using the Token
+## Endpoints
 
-Include the token in the Authorization header:
-```http
-Authorization: Bearer your_token_here
-```
+### 🏥 Health Checkup
 
-## API Endpoints
+#### Packages
+- `GET /packages` - List all health checkup packages
+- `POST /packages` - Create new package
+- `GET /packages/{id}` - Get package details
+- `PUT /packages/{id}` - Update package
+- `DELETE /packages/{id}` - Delete package
 
-### Health Checkup Management
+#### Appointments
+- `GET /appointments` - List appointments
+- `POST /appointments` - Create appointment
+- `GET /appointments/{id}` - Get appointment details
+- `PUT /appointments/{id}` - Update appointment
+- `DELETE /appointments/{id}` - Cancel appointment
 
-#### List Health Checkup Packages
-```http
-GET /packages
-```
+#### Examination Results
+- `GET /examinations` - List examination results
+- `POST /examinations` - Record new result
+- `GET /examinations/{id}` - Get result details
+- `PUT /examinations/{id}` - Update result
+- `POST /examinations/{id}/files` - Upload result files
 
-#### Create Health Checkup Package
-```http
-POST /packages
-Content-Type: application/json
+### 📋 Medical Records
 
-{
-    "name": "Basic Checkup",
-    "description": "Basic health examination package",
-    "price": 2500.00,
-    "items": [
-        {
-            "examination_id": 1,
-            "name": "Blood Test",
-            "price": 500.00
-        }
-    ]
-}
-```
+#### Patients
+- `GET /patients` - List patients
+- `POST /patients` - Register new patient
+- `GET /patients/{id}` - Get patient details
+- `PUT /patients/{id}` - Update patient info
+- `GET /patients/{id}/history` - Get medical history
 
-### Patient Management
+#### Vital Signs
+- `GET /vitals` - List vital records
+- `POST /vitals` - Record new vitals
+- `GET /vitals/{id}` - Get vital details
+- `GET /vitals/{patient_id}/trends` - Get vital trends
 
-#### Create Patient
-```http
-POST /patients
-Content-Type: application/json
+### 📊 Reports
 
-{
-    "first_name": "John",
-    "last_name": "Doe",
-    "date_of_birth": "1990-01-01",
-    "gender": "male",
-    "contact": {
-        "phone": "0812345678",
-        "email": "john@example.com"
-    }
-}
-```
+#### Health Reports
+- `GET /reports/health` - List health reports
+- `POST /reports/health` - Generate new report
+- `GET /reports/health/{id}` - Get report details
+- `GET /reports/health/{id}/pdf` - Download PDF
+- `GET /reports/health/{id}/excel` - Download Excel
 
-#### Get Patient Details
-```http
-GET /patients/{patient_id}
-```
+#### Statistics
+- `GET /reports/stats/patients` - Patient statistics
+- `GET /reports/stats/examinations` - Examination statistics
+- `GET /reports/stats/appointments` - Appointment statistics
+- `GET /reports/stats/trends` - Trend analysis
 
-### Appointment Management
+### 🎨 UI/UX Settings
 
-#### Create Appointment
-```http
+#### Themes
+- `GET /settings/themes` - List available themes
+- `POST /settings/themes` - Create custom theme
+- `GET /settings/themes/{id}` - Get theme details
+- `PUT /settings/themes/{id}` - Update theme
+
+#### Accessibility
+- `GET /settings/accessibility` - Get accessibility settings
+- `PUT /settings/accessibility` - Update settings
+- `GET /settings/languages` - List available languages
+- `PUT /settings/languages` - Update language preference
+
+## Request/Response Examples
+
+### Create Appointment
+
+Request:
+```json
 POST /appointments
-Content-Type: application/json
-
 {
-    "patient_id": 1,
-    "package_id": 1,
-    "appointment_date": "2024-02-01T09:00:00",
-    "notes": "First time checkup"
+  "patient_id": "123",
+  "package_id": "456",
+  "datetime": "2024-02-01T10:00:00Z",
+  "notes": "Annual checkup"
 }
 ```
 
-#### List Appointments
-```http
-GET /appointments
+Response:
+```json
+{
+  "id": "789",
+  "patient_id": "123",
+  "package_id": "456",
+  "datetime": "2024-02-01T10:00:00Z",
+  "status": "scheduled",
+  "notes": "Annual checkup",
+  "created_at": "2024-01-31T15:00:00Z"
+}
 ```
 
-### Medical Records
+### Record Examination Result
 
-#### Create Medical Record
-```http
-POST /records
-Content-Type: application/json
-
+Request:
+```json
+POST /examinations
 {
-    "patient_id": 1,
-    "appointment_id": 1,
-    "vital_signs": {
-        "blood_pressure": "120/80",
-        "heart_rate": 75,
-        "temperature": 36.5
-    },
-    "examination_results": [
-        {
-            "item_id": 1,
-            "result": "Normal",
-            "notes": "Within normal range"
-        }
+  "appointment_id": "789",
+  "type": "blood_pressure",
+  "values": {
+    "systolic": 120,
+    "diastolic": 80
+  },
+  "notes": "Normal range"
+}
+```
+
+Response:
+```json
+{
+  "id": "321",
+  "appointment_id": "789",
+  "type": "blood_pressure",
+  "values": {
+    "systolic": 120,
+    "diastolic": 80
+  },
+  "status": "completed",
+  "notes": "Normal range",
+  "recorded_at": "2024-02-01T10:15:00Z"
+}
+```
+
+### Generate Report
+
+Request:
+```json
+POST /reports/health
+{
+  "patient_id": "123",
+  "type": "comprehensive",
+  "date_range": {
+    "start": "2024-01-01",
+    "end": "2024-01-31"
+  },
+  "format": "pdf"
+}
+```
+
+Response:
+```json
+{
+  "id": "654",
+  "patient_id": "123",
+  "type": "comprehensive",
+  "status": "generated",
+  "download_url": "/reports/health/654/pdf",
+  "generated_at": "2024-01-31T15:30:00Z"
+}
+```
+
+## Error Handling
+
+### Error Codes
+- 400: Bad Request
+- 401: Unauthorized
+- 403: Forbidden
+- 404: Not Found
+- 422: Validation Error
+- 500: Internal Server Error
+
+### Error Response
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid input data",
+    "details": [
+      {
+        "field": "datetime",
+        "message": "Must be a future date"
+      }
     ]
-}
-```
-
-#### Get Medical Record
-```http
-GET /records/{record_id}
-```
-
-## Response Format
-
-All responses are returned in JSON format. Successful responses will have a 2xx status code and follow this structure:
-
-```json
-{
-    "status": "success",
-    "data": {
-        // Response data here
-    }
-}
-```
-
-Error responses will have a 4xx or 5xx status code and follow this structure:
-
-```json
-{
-    "status": "error",
-    "message": "Error description",
-    "code": "ERROR_CODE"
+  }
 }
 ```
 
 ## Rate Limiting
 
-API requests are limited to:
-- 100 requests per minute for authenticated users
-- 20 requests per minute for unauthenticated users
+- Rate limit: 1000 requests per hour
+- Rate limit header: `X-RateLimit-Limit`
+- Remaining requests: `X-RateLimit-Remaining`
+- Reset time: `X-RateLimit-Reset`
 
 ## Webhooks
 
-We provide webhooks for real-time notifications:
-- Appointment updates
-- Examination results
-- Report generation
+### Available Events
+- `appointment.created`
+- `appointment.updated`
+- `examination.completed`
+- `report.generated`
+
+### Webhook Payload
+```json
+{
+  "event": "appointment.created",
+  "timestamp": "2024-01-31T15:00:00Z",
+  "data": {
+    "id": "789",
+    "patient_id": "123",
+    "status": "scheduled"
+  }
+}
+```
 
 ## SDK & Libraries
 

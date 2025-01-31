@@ -61,6 +61,45 @@ MediTech HealthCheckup System is a modern solution for managing health checkups 
   - Medication history
   - Follow-up appointments
 
+### 🎨 UI/UX System
+- Theme and Design
+  - Customizable color themes
+  - Dark Mode for low-light environments
+  - Clean and intuitive layout
+- Base Components
+  - Customizable buttons with variants
+  - Validated input forms
+  - Easy-to-manage data tables
+  - User-friendly dropdowns and combo boxes
+- Data Visualization
+  - Line charts for trends
+  - Bar charts for comparisons
+  - Pie charts for proportions
+  - Heat maps for data intensity
+- Accessibility Features
+  - Adjustable font sizes
+  - High contrast mode
+  - Screen reader support
+  - Keyboard navigation
+  - Multi-language support
+
+### 📊 Reporting System
+- Health Checkup Reports
+  - Real-time report generation
+  - Tabular data presentation
+  - Multi-type graph analysis
+  - Standard value comparisons
+- Report Export
+  - Customizable PDF export
+  - Excel export for further analysis
+  - Direct printing capability
+  - Report saving and sharing
+- Data Analysis
+  - Time-based trends
+  - Group comparisons
+  - Examination type proportions
+  - Statistics and deep analysis
+
 ## 🎓 For Students
 
 ### Code Study Guide
