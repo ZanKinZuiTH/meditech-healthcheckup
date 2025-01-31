@@ -3,7 +3,10 @@
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.68.0%2B-green.svg)](https://fastapi.tiangolo.com/)
 [![PyQt6](https://img.shields.io/badge/PyQt-6.0%2B-orange.svg)](https://www.riverbankcomputing.com/software/pyqt/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![GitHub license](https://img.shields.io/github/license/BRXG/meditech-healthcheckup)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/BRXG/meditech-healthcheckup)](https://github.com/BRXG/meditech-healthcheckup/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/BRXG/meditech-healthcheckup)](https://github.com/BRXG/meditech-healthcheckup/network)
+[![GitHub issues](https://img.shields.io/github/issues/BRXG/meditech-healthcheckup)](https://github.com/BRXG/meditech-healthcheckup/issues)
 
 ระบบบริหารจัดการการตรวจสุขภาพและบันทึกข้อมูลทางการแพทย์ พัฒนาด้วย Python
 
@@ -154,11 +157,23 @@ cp .env.example .env
 docker-compose up -d
 ```
 
-## 📚 เอกสารประกอบ
+## 🤝 การมีส่วนร่วมพัฒนา
 
-- [คู่มือการติดตั้ง](docs/installation.md)
-- [คู่มือการพัฒนา](docs/development_guide.md)
-- [API Documentation](docs/api/README.md)
+เรายินดีต้อนรับการมีส่วนร่วมจากชุมชน! หากคุณต้องการมีส่วนร่วมในการพัฒนา:
+
+1. Fork repository
+2. สร้าง feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit การเปลี่ยนแปลง (`git commit -m 'Add amazing feature'`)
+4. Push ไปยัง branch (`git push origin feature/amazing-feature`)
+5. เปิด Pull Request
+
+โปรดอ่านรายละเอียดเพิ่มเติมที่ [CONTRIBUTING.md](CONTRIBUTING.md)
+
+## 📝 ลิขสิทธิ์
+
+© 2024 BRXG Co.
+
+โปรเจคนี้เผยแพร่ภายใต้ลิขสิทธิ์ MIT License - ดูรายละเอียดได้ที่ [LICENSE](LICENSE)
 
 ## 👥 ทีมพัฒนา
 
@@ -168,6 +183,7 @@ docker-compose up -d
 
 - Website: https://brxggroup.com
 - Facebook: https://www.facebook.com/brxggroup/?locale=th_TH
+- GitHub Issues: https://github.com/BRXG/meditech-healthcheckup/issues
 
 ## 🙏 กิตติกรรมประกาศ
 
