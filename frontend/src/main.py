@@ -21,6 +21,7 @@
 # - จัดการ Error ให้ดี
 
 import sys
+import logging
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt, QThread
 from typing import Optional
@@ -29,6 +30,17 @@ from .views.main_window import MainWindow
 from .services.api import APIClient
 from .utils.theme import Theme
 from .utils.config import settings
+
+# Setup logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('frontend.log')
+    ]
+)
 
 class MediTechApp(QApplication):
     """
@@ -49,20 +61,20 @@ class MediTechApp(QApplication):
             argv: Command line arguments
         """
         super().__init__(argv)
+        logger.info("Starting MediTech Application")
         
         # ตั้งค่า Application
         self.setApplicationName("MediTech")
         self.setApplicationVersion("1.0.0")
         
-        # เตรียม Services
-        self._init_services()
-        
-        # ตั้งค่า Theme
-        self._init_theme()
-        
-        # สร้าง Main Window
-        self.main_window: Optional[MainWindow] = None
-        self._init_main_window()
+        try:
+            self._init_services()
+            self._init_theme()
+            self._init_main_window()
+            logger.info("Application initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize application: {str(e)}")
+            raise
     
     def _init_services(self):
         """
@@ -71,7 +83,12 @@ class MediTechApp(QApplication):
         - Database Connection
         - Authentication
         """
-        self.api = APIClient(settings.API_URL)
+        try:
+            self.api = APIClient(settings.API_URL)
+            logger.info("Services initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize services: {str(e)}")
+            raise
     
     def _init_theme(self):
         """
@@ -81,8 +98,13 @@ class MediTechApp(QApplication):
         - ไอคอน
         - สไตล์
         """
-        self.theme = Theme()
-        self.setStyleSheet(self.theme.stylesheet)
+        try:
+            self.theme = Theme()
+            self.setStyleSheet(self.theme.stylesheet)
+            logger.info("Theme initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize theme: {str(e)}")
+            raise
     
     def _init_main_window(self):
         """
@@ -91,8 +113,13 @@ class MediTechApp(QApplication):
         - เชื่อมต่อ Signals
         - จัดการ Layout
         """
-        self.main_window = MainWindow(self.api)
-        self.main_window.show()
+        try:
+            self.main_window = MainWindow(self.api)
+            self.main_window.show()
+            logger.info("Main window initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize main window: {str(e)}")
+            raise
     
     def run(self) -> int:
         """
@@ -101,7 +128,14 @@ class MediTechApp(QApplication):
         Returns:
             int: Exit code
         """
-        return self.exec()
+        try:
+            logger.info("Running application")
+            return self.exec()
+        except Exception as e:
+            logger.error(f"Application error: {str(e)}")
+            return 1
+        finally:
+            logger.info("Application shutdown")
 
 def main():
     """
@@ -113,8 +147,12 @@ def main():
     3. แสดง UI
     4. รันแอพพลิเคชัน
     """
-    app = MediTechApp(sys.argv)
-    return app.run()
+    try:
+        app = MediTechApp(sys.argv)
+        return app.run()
+    except Exception as e:
+        logger.critical(f"Fatal error: {str(e)}")
+        return 1
 
 if __name__ == "__main__":
     sys.exit(main()) 

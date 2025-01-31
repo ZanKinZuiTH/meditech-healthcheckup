@@ -20,6 +20,7 @@
 # - ใช้ Alembic สำหรับ Migration
 # - จัดการ Connection ให้ดี
 
+import logging
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -27,6 +28,9 @@ from sqlalchemy.pool import QueuePool
 from typing import Generator
 
 from .config import settings
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 # สร้าง Database URL
 # -----------------
@@ -130,9 +134,9 @@ def connect_db() -> None:
     try:
         db = SessionLocal()
         db.execute("SELECT 1")
-        print("Database connected successfully")
+        logger.info("Database connected successfully")
     except Exception as e:
-        print(f"Database connection failed: {e}")
+        logger.error(f"Database connection failed: {e}")
     finally:
         db.close()
 
@@ -142,4 +146,4 @@ def disconnect_db() -> None:
     ใช้เมื่อ Application หยุดทำงาน
     """
     engine.dispose()
-    print("Database disconnected") 
+    logger.info("Database disconnected") 
