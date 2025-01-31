@@ -1,0 +1,95 @@
+# Git
+.git
+.gitignore
+.gitattributes
+.github
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+log/
+
+# Local development
+.env
+.env.local
+.env.*.local
+*.sqlite3
+*.db
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+
+# Documentation
+docs/
+*.md
+LICENSE
+
+# Docker
+.docker/
+docker-compose.override.yml
+Dockerfile*
+docker-compose*
+
+# Frontend build
+node_modules/
+/dist
+/build
+
+# Media and static files
+media/
+static/
+uploads/
+backups/
+
+# Temporary files
+*.bak
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.pdf
+*.xlsx
+*.docx
+config.ini 
