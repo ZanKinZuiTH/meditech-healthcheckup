@@ -1,3 +1,25 @@
+# Backend Main Application
+# ===================
+#
+# ไฟล์นี้เป็นจุดเริ่มต้นของ Backend API โดยใช้ FastAPI
+# เหมาะสำหรับการศึกษาเรื่อง:
+# 1. การสร้าง REST API
+# 2. การจัดการฐานข้อมูล
+# 3. Authentication & Authorization
+# 4. Dependency Injection
+#
+# การเรียนรู้:
+# - ศึกษาโครงสร้าง FastAPI Application
+# - เข้าใจการทำงานของ Middleware
+# - วิธีการจัดการ Dependencies
+# - การจัดการ Error Handling
+#
+# Tips:
+# - ใช้ FastAPI docs ที่ /docs สำหรับทดสอบ API
+# - ดู Logs เพื่อ Debug
+# - ใช้ Pydantic สำหรับ Data Validation
+# - แยก Business Logic ไว้ใน Services
+
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -5,6 +27,7 @@ from fastapi.staticfiles import StaticFiles
 from prometheus_client import make_asgi_app
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
+from datetime import datetime
 
 from app.core.config import settings
 from app.core.logger import setup_logging
@@ -15,6 +38,7 @@ from app.models import models
 from app.schemas import schemas
 from app.crud import crud
 from app.auth import get_current_user
+from app.services import create_patient_service, get_patients_service
 
 # Setup logging
 logger = setup_logging()
@@ -94,7 +118,10 @@ async def health_check() -> Dict[str, str]:
     """
     Health check endpoint
     """
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat()
+    }
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Any, exc: HTTPException) -> JSONResponse:
@@ -133,10 +160,11 @@ async def login(db: Session = Depends(get_db)) -> schemas.Token:
 async def get_patients(
     skip: int = 0,
     limit: int = 100,
+    search: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(get_current_user)
 ) -> List[schemas.Patient]:
-    return crud.get_patients(db, skip=skip, limit=limit)
+    return await get_patients_service(db, skip, limit, search)
 
 @app.post("/patients", response_model=schemas.Patient)
 async def create_patient(
@@ -144,7 +172,7 @@ async def create_patient(
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(get_current_user)
 ) -> schemas.Patient:
-    return crud.create_patient(db, patient=patient)
+    return await create_patient_service(db, patient)
 
 # Appointments
 @app.get("/appointments", response_model=List[schemas.Appointment])
