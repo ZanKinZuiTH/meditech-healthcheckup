@@ -1,0 +1,9 @@
+theme: jekyll-theme-cayman
+title: MediTech HealthCheckup System
+description: ระบบตรวจสุขภาพและบันทึกข้อมูลทางการแพทย์
+show_downloads: false
+google_analytics:
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge 

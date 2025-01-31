@@ -1,10 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import make_asgi_app
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Dict, Any, Optional
 
 from app.core.config import settings
 from app.core.logger import setup_logging
@@ -50,15 +50,18 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.include_router(api_router, prefix=settings.API_PREFIX)
 
 # Database Dependency
-def get_db():
+async def get_db() -> Session:
+    """
+    Get database session
+    """
     db = SessionLocal()
     try:
         yield db
     finally:
-        db.close()
+        await db.close()
 
 @app.on_event("startup")
-async def startup_event():
+async def startup_event() -> None:
     """
     Initialize application on startup
     """
@@ -71,12 +74,12 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to initialize database: {str(e)}")
         raise HTTPException(
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to initialize application"
         )
 
 @app.on_event("shutdown")
-async def shutdown_event():
+async def shutdown_event() -> None:
     """
     Cleanup on application shutdown
     """
@@ -86,15 +89,15 @@ async def shutdown_event():
     except Exception as e:
         logger.error(f"Error during shutdown: {str(e)}")
 
-@app.get("/health")
-def health_check():
+@app.get("/health", response_model=Dict[str, str])
+async def health_check() -> Dict[str, str]:
     """
     Health check endpoint
     """
     return {"status": "healthy"}
 
 @app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc):
+async def http_exception_handler(request: Any, exc: HTTPException) -> JSONResponse:
     """
     Handle HTTP exceptions
     """
@@ -107,40 +110,40 @@ async def http_exception_handler(request, exc):
     )
 
 @app.exception_handler(Exception)
-async def general_exception_handler(request, exc):
+async def general_exception_handler(request: Any, exc: Exception) -> JSONResponse:
     """
     Handle general exceptions
     """
     logger.error(f"Unhandled exception: {str(exc)}")
     return JSONResponse(
-        status_code=500,
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
             "detail": "Internal server error",
-            "status_code": 500
+            "status_code": status.HTTP_500_INTERNAL_SERVER_ERROR
         }
     )
 
 # Authentication
 @app.post("/auth/token", response_model=schemas.Token)
-def login(db: Session = Depends(get_db)):
+async def login(db: Session = Depends(get_db)) -> schemas.Token:
     return {"access_token": "token", "token_type": "bearer"}
 
 # Patients
 @app.get("/patients", response_model=List[schemas.Patient])
-def get_patients(
+async def get_patients(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(get_current_user)
-):
+) -> List[schemas.Patient]:
     return crud.get_patients(db, skip=skip, limit=limit)
 
 @app.post("/patients", response_model=schemas.Patient)
-def create_patient(
+async def create_patient(
     patient: schemas.PatientCreate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(get_current_user)
-):
+) -> schemas.Patient:
     return crud.create_patient(db, patient=patient)
 
 # Appointments

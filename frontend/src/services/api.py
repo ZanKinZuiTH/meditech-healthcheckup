@@ -1,23 +1,39 @@
 import httpx
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, TypeVar, Generic, AsyncContextManager
+from types import TracebackType
 from ..config import settings
 
+T = TypeVar('T')
+
 class APIClient:
-    def __init__(self):
+    def __init__(self) -> None:
         self.base_url = settings.API_BASE_URL
         self.token: Optional[str] = None
-        self.client = httpx.AsyncClient(
-            base_url=self.base_url,
-            timeout=30.0,
-            verify=settings.VERIFY_SSL,
-            follow_redirects=True
-        )
+        self._client: Optional[httpx.AsyncClient] = None
 
-    async def __aenter__(self):
+    @property
+    def client(self) -> httpx.AsyncClient:
+        if self._client is None:
+            self._client = httpx.AsyncClient(
+                base_url=self.base_url,
+                timeout=30.0,
+                verify=settings.VERIFY_SSL,
+                follow_redirects=True
+            )
+        return self._client
+
+    async def __aenter__(self) -> 'APIClient':
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.client.aclose()
+    async def __aexit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType]
+    ) -> None:
+        if self._client is not None:
+            await self._client.aclose()
+            self._client = None
 
     async def login(self, username: str, password: str) -> Dict[str, str]:
         try:
@@ -30,7 +46,11 @@ class APIClient:
             self.token = data["access_token"]
             return data
         except httpx.HTTPError as e:
-            raise APIError("Login failed", "AUTH_ERROR", getattr(e.response, 'status_code', 500))
+            raise APIError(
+                "Login failed",
+                "AUTH_ERROR",
+                getattr(e.response, 'status_code', 500)
+            )
 
     def get_headers(self) -> Dict[str, str]:
         headers = {
@@ -41,7 +61,12 @@ class APIClient:
             headers["Authorization"] = f"Bearer {self.token}"
         return headers
 
-    async def _make_request(self, method: str, url: str, **kwargs) -> Any:
+    async def _make_request(
+        self,
+        method: str,
+        url: str,
+        **kwargs: Any
+    ) -> Any:
         try:
             response = await self.client.request(
                 method,
@@ -55,14 +80,21 @@ class APIClient:
             self.handle_error(e.response)
 
     # Patients
-    async def get_patients(self, skip: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
+    async def get_patients(
+        self,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[Dict[str, Any]]:
         return await self._make_request(
             "GET",
             "/patients",
             params={"skip": skip, "limit": limit}
         )
 
-    async def create_patient(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    async def create_patient(
+        self,
+        data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         return await self._make_request(
             "POST",
             "/patients",
@@ -167,7 +199,12 @@ class APIClient:
             )
 
 class APIError(Exception):
-    def __init__(self, message: str, code: str, status_code: int):
+    def __init__(
+        self,
+        message: str,
+        code: str,
+        status_code: int
+    ) -> None:
         self.message = message
         self.code = code
         self.status_code = status_code
