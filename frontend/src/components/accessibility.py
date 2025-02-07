@@ -1,4 +1,7 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QSlider, QLabel, QComboBox
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QCheckBox, QSlider, 
+    QLabel, QComboBox, QPushButton
+)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 from ..styles.theme import Theme
