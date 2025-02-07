@@ -1,11 +1,11 @@
 # Auto detect text files and perform LF normalization
-* text=auto
+* text=auto eol=lf
 
 # Python files
-*.py text diff=python
-*.pyw text diff=python
-*.pyx text diff=python
-*.pxd text diff=python
+*.py text diff=python eol=lf
+*.pyw text diff=python eol=lf
+*.pyx text diff=python eol=lf
+*.pxd text diff=python eol=lf
 
 # Docker files
 Dockerfile text
@@ -13,29 +13,29 @@ docker-compose.yml text
 *.dockerfile text
 
 # Documentation
-*.md text diff=markdown
-*.txt text
-*.rst text
-*.json text
-*.yaml text
-*.yml text
+*.md text diff=markdown eol=lf
+*.txt text eol=lf
+*.rst text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
 
 # Frontend files
-*.html text diff=html
-*.css text diff=css
-*.js text
-*.ts text
-*.tsx text
-*.jsx text
+*.html text diff=html eol=lf
+*.css text diff=css eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.jsx text eol=lf
 
-# Binary files
+# Binary files (no conversion)
 *.db binary
 *.p binary
 *.pkl binary
 *.pickle binary
-*.pyc binary export-ignore
-*.pyo binary export-ignore
-*.pyd binary export-ignore
+*.pyc binary
+*.pyo binary
+*.pyd binary
 
 # Image files
 *.png binary
