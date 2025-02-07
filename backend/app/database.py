@@ -21,9 +21,9 @@
 # - จัดการ Connection ให้ดี
 
 import logging
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.pool import QueuePool
 from typing import Generator
 
@@ -47,29 +47,37 @@ SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
 # - Echo SQL
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    # จำนวน Connection สูงสุดที่เก็บไว้ใน Pool
-    pool_size=5,
-    # จำนวน Connection เพิ่มเติมที่สามารถสร้างได้
+    poolclass=QueuePool,
+    pool_size=20,  # เพิ่มจำนวน connections
     max_overflow=10,
-    # เวลาที่รอ Connection ว่าง (วินาที)
     pool_timeout=30,
-    # แสดง SQL ที่รันใน Console (Debug)
-    echo=settings.DEBUG,
-    # ใช้ QueuePool สำหรับจัดการ Connection
-    poolclass=QueuePool
+    pool_recycle=1800,  # รีเซ็ต connection ทุก 30 นาที
+    echo=settings.DEBUG
 )
+
+# เพิ่ม Event Listeners
+@event.listens_for(engine, "connect")
+def connect(dbapi_connection, connection_record):
+    logger.info("Database connection established")
+
+@event.listens_for(engine, "checkout")
+def checkout(dbapi_connection, connection_record, connection_proxy):
+    logger.debug("Database connection checked out")
+
+@event.listens_for(engine, "checkin")
+def checkin(dbapi_connection, connection_record):
+    logger.debug("Database connection checked in")
 
 # สร้าง SessionLocal
 # -----------------
 # SessionLocal ใช้สำหรับติดต่อกับฐานข้อมูล
 # แต่ละ Request ควรใช้ Session แยกกัน
-SessionLocal = sessionmaker(
-    # ผูก Session กับ Engine
-    bind=engine,
-    # Auto Commit เมื่อจบ Transaction
-    autocommit=False,
-    # Auto Flush เมื่อมีการ Query
-    autoflush=False
+SessionLocal = scoped_session(
+    sessionmaker(
+        bind=engine,
+        autocommit=False,
+        autoflush=False
+    )
 )
 
 # สร้าง Base Class
@@ -77,6 +85,7 @@ SessionLocal = sessionmaker(
 # Base Class สำหรับสร้าง Model
 # ใช้เป็น Parent Class ของทุก Model
 Base = declarative_base()
+Base.query = SessionLocal.query_property()
 
 # Dependency
 # ---------
@@ -99,6 +108,7 @@ def get_db() -> Generator:
         yield db
     finally:
         db.close()
+        SessionLocal.remove()  # ทำความสะอาด thread-local storage
 
 # Database Utilities
 # -----------------

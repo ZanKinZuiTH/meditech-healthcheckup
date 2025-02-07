@@ -22,25 +22,29 @@
 
 import sys
 import logging
+import asyncio
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import Qt, QThread
+from PyQt6.QtCore import Qt, QThread, QTimer
 from typing import Optional
+import traceback
 
 from .views.main_window import MainWindow
 from .services.api import APIClient
 from .utils.theme import Theme
 from .utils.config import settings
+from .utils.cache import Cache
 
-# Setup logging
-logger = logging.getLogger(__name__)
+# Setup logging with more detailed configuration
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('frontend.log')
+        logging.FileHandler('frontend.log', encoding='utf-8')
     ]
 )
+
+logger = logging.getLogger(__name__)
 
 class MediTechApp(QApplication):
     """
@@ -61,11 +65,18 @@ class MediTechApp(QApplication):
             argv: Command line arguments
         """
         super().__init__(argv)
-        logger.info("Starting MediTech Application")
         
-        # ตั้งค่า Application
-        self.setApplicationName("MediTech")
-        self.setApplicationVersion("1.0.0")
+        # Global exception handler
+        sys.excepthook = self.handle_exception
+        
+        # Initialize cache
+        self.cache = Cache()
+        
+        # Performance monitoring
+        self.start_time = None
+        self.performance_timer = QTimer()
+        self.performance_timer.timeout.connect(self.monitor_performance)
+        self.performance_timer.start(60000)  # Monitor every minute
         
         try:
             self._init_services()
@@ -74,80 +85,126 @@ class MediTechApp(QApplication):
             logger.info("Application initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize application: {str(e)}")
-            raise
+            self.handle_critical_error(e)
     
-    def _init_services(self):
-        """
-        เตรียม Services ต่างๆ:
-        - API Client
-        - Database Connection
-        - Authentication
-        """
+    def handle_exception(self, exc_type, exc_value, exc_traceback):
+        """Global exception handler"""
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+        
+        logger.error("Uncaught exception:", exc_info=(exc_type, exc_value, exc_traceback))
+    
+    def handle_critical_error(self, error):
+        """Handle critical errors that prevent app from starting"""
+        from PyQt6.QtWidgets import QMessageBox
+        
+        error_msg = QMessageBox()
+        error_msg.setIcon(QMessageBox.Icon.Critical)
+        error_msg.setText("เกิดข้อผิดพลาดร้ายแรง")
+        error_msg.setInformativeText(str(error))
+        error_msg.setDetailedText(traceback.format_exc())
+        error_msg.exec()
+        
+        self.quit()
+    
+    def monitor_performance(self):
+        """Monitor application performance"""
+        import psutil
+        process = psutil.Process()
+        
+        # Log memory usage
+        memory_info = process.memory_info()
+        logger.info(f"Memory usage: {memory_info.rss / 1024 / 1024:.2f} MB")
+        
+        # Log CPU usage
+        cpu_percent = process.cpu_percent()
+        logger.info(f"CPU usage: {cpu_percent}%")
+        
+        # Check response time
+        if hasattr(self, 'main_window'):
+            response_time = self.main_window.get_average_response_time()
+            logger.info(f"Average response time: {response_time:.2f}ms")
+    
+    async def _init_services(self):
+        """Initialize services asynchronously"""
         try:
-            self.api = APIClient(settings.API_URL)
-            logger.info("Services initialized successfully")
+            self.api = await APIClient.create(settings.API_URL)
+            logger.info("API client initialized successfully")
+            
+            # Warm up cache
+            await self.cache.preload_common_data(self.api)
+            logger.info("Cache warmed up successfully")
         except Exception as e:
             logger.error(f"Failed to initialize services: {str(e)}")
             raise
     
     def _init_theme(self):
-        """
-        ตั้งค่า Theme ของแอพพลิเคชัน:
-        - สี
-        - ฟอนต์
-        - ไอคอน
-        - สไตล์
-        """
+        """Initialize application theme with error handling"""
         try:
             self.theme = Theme()
             self.setStyleSheet(self.theme.stylesheet)
+            
+            # Monitor theme changes
+            self.theme.changed.connect(self.handle_theme_change)
             logger.info("Theme initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize theme: {str(e)}")
             raise
     
-    def _init_main_window(self):
-        """
-        สร้างและแสดง Main Window:
-        - ตั้งค่า UI
-        - เชื่อมต่อ Signals
-        - จัดการ Layout
-        """
+    def handle_theme_change(self):
+        """Handle theme changes dynamically"""
         try:
-            self.main_window = MainWindow(self.api)
+            self.setStyleSheet(self.theme.stylesheet)
+            if hasattr(self, 'main_window'):
+                self.main_window.refresh_style()
+        except Exception as e:
+            logger.error(f"Failed to update theme: {str(e)}")
+    
+    def _init_main_window(self):
+        """Initialize main window with performance monitoring"""
+        try:
+            self.start_time = self.currentTime()
+            self.main_window = MainWindow(self.api, self.cache)
             self.main_window.show()
-            logger.info("Main window initialized successfully")
+            
+            # Log startup time
+            startup_time = self.currentTime() - self.start_time
+            logger.info(f"Main window initialized in {startup_time}ms")
         except Exception as e:
             logger.error(f"Failed to initialize main window: {str(e)}")
             raise
     
     def run(self) -> int:
-        """
-        รันแอพพลิเคชัน
-        
-        Returns:
-            int: Exit code
-        """
+        """Run application with comprehensive error handling"""
         try:
-            logger.info("Running application")
+            logger.info("Starting application main loop")
             return self.exec()
         except Exception as e:
             logger.error(f"Application error: {str(e)}")
+            self.handle_critical_error(e)
             return 1
         finally:
-            logger.info("Application shutdown")
+            self.cleanup()
+    
+    def cleanup(self):
+        """Cleanup resources before shutdown"""
+        try:
+            if hasattr(self, 'api'):
+                asyncio.run(self.api.close())
+            if hasattr(self, 'cache'):
+                self.cache.clear()
+            logger.info("Application cleanup completed")
+        except Exception as e:
+            logger.error(f"Cleanup error: {str(e)}")
 
 def main():
-    """
-    ฟังก์ชันหลักสำหรับเริ่มต้นแอพพลิเคชัน
-    
-    Flow การทำงาน:
-    1. สร้าง Application Instance
-    2. ตั้งค่าระบบ
-    3. แสดง UI
-    4. รันแอพพลิเคชัน
-    """
+    """Main entry point with proper initialization"""
     try:
+        # Set application attributes
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling)
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
+        
         app = MediTechApp(sys.argv)
         return app.run()
     except Exception as e:
