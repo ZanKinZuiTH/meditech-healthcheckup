@@ -87,5 +87,7 @@ coverage.xml
 *.cover
 
 # PowerShell
-$PROFILE
+powershell/
 *.ps1
+$PROFILE
+WindowsPowerShell/
