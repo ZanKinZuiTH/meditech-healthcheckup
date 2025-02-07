@@ -1,5 +1,10 @@
+"""
+Pydantic schemas สำหรับระบบวินิจฉัยโรค
+"""
+
 from typing import List, Optional
 from pydantic import BaseModel, Field
+from datetime import datetime
 
 class DiagnosisInput(BaseModel):
     """ข้อมูลนำเข้าสำหรับการวินิจฉัย"""
@@ -33,6 +38,14 @@ class DiagnosisInput(BaseModel):
         None,
         description="ประวัติการรักษาที่เกี่ยวข้อง"
     )
+
+class DiagnosisRequest(BaseModel):
+    """ข้อมูลที่ใช้ในการวินิจฉัย"""
+    symptoms: List[str]
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    duration_days: Optional[int] = None
+    medical_history: Optional[List[str]] = None
 
 class DiagnosisResult(BaseModel):
     """ผลลัพธ์การวินิจฉัย"""
@@ -72,4 +85,21 @@ class DiagnosisResult(BaseModel):
                 "recommendation": "ควรพักผ่อนให้เพียงพอและดื่มน้ำมากๆ",
                 "warning_signs": []
             }
-        } 
+        }
+
+class DiagnosisHistoryResponse(BaseModel):
+    """ข้อมูลประวัติการวินิจฉัยที่ส่งกลับให้ผู้ใช้"""
+    id: int
+    symptoms: List[str]
+    age: Optional[int]
+    gender: Optional[str]
+    duration_days: Optional[int]
+    medical_history: Optional[List[str]]
+    possible_conditions: List[str]
+    confidence_score: float
+    recommendation: str
+    warning_signs: Optional[List[str]]
+    created_at: datetime
+
+    class Config:
+        orm_mode = True 

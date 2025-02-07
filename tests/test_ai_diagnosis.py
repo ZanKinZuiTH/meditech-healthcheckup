@@ -1,3 +1,22 @@
+"""
+Test Suite สำหรับ AI Diagnosis System
+
+คำอธิบายสำหรับนักศึกษา:
+1. การทดสอบแบ่งเป็น 3 ส่วนหลัก:
+   - Unit Tests: ทดสอบการทำงานของแต่ละฟังก์ชัน
+   - API Tests: ทดสอบการเรียกใช้ API
+   - UI Tests: ทดสอบส่วนติดต่อผู้ใช้
+
+2. หลักการเขียน Test:
+   - ใช้ pytest framework
+   - แยก test cases ให้ชัดเจน
+   - ครอบคลุมทั้ง positive และ negative cases
+   - ใช้ fixtures เพื่อเตรียมข้อมูลทดสอบ
+
+3. การรัน Tests:
+   pytest tests/test_ai_diagnosis.py -v
+"""
+
 import pytest
 from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
@@ -8,6 +27,12 @@ from app.schemas.diagnosis import DiagnosisInput, DiagnosisResult
 
 @pytest.fixture
 def test_diagnosis_input():
+    """Fixture สำหรับเตรียมข้อมูลนำเข้าในการทดสอบ
+    
+    คำอธิบาย:
+    - สร้างข้อมูลตัวอย่างสำหรับการวินิจฉัย
+    - ใช้ข้อมูลที่ครอบคลุมฟิลด์ที่จำเป็น
+    """
     return DiagnosisInput(
         symptoms=["ไข้", "ปวดหัว", "ไอ"],
         age=30,
@@ -17,6 +42,12 @@ def test_diagnosis_input():
 
 @pytest.fixture
 def mock_ai_service():
+    """Fixture สำหรับ mock AI service
+    
+    คำอธิบาย:
+    - ใช้ unittest.mock เพื่อจำลองการทำงานของ AI
+    - กำหนดค่าที่คาดว่าจะได้รับจากการวินิจฉัย
+    """
     with patch("app.services.ai_diagnosis.AIDiagnosisService") as mock:
         service = Mock()
         service.get_diagnosis.return_value = DiagnosisResult(
@@ -29,11 +60,24 @@ def mock_ai_service():
         yield service
 
 class TestAIDiagnosisService:
-    """ทดสอบ AI Diagnosis Service"""
+    """ทดสอบ AI Diagnosis Service
+    
+    คำอธิบายสำหรับนักศึกษา:
+    - ทดสอบการทำงานของ service โดยตรง
+    - ครอบคลุมฟังก์ชันหลักทั้งหมด
+    - ตรวจสอบการจัดการข้อผิดพลาด
+    """
     
     @pytest.mark.asyncio
     async def test_initialization(self):
-        """ทดสอบการเริ่มต้นบริการ"""
+        """ทดสอบการเริ่มต้นบริการ
+        
+        Steps:
+        1. สร้าง instance ของ service
+        2. ตรวจสอบสถานะเริ่มต้น
+        3. เรียกใช้ initialize
+        4. ตรวจสอบการโหลดโมเดล
+        """
         service = AIDiagnosisService()
         assert not service.initialized
         
@@ -44,7 +88,13 @@ class TestAIDiagnosisService:
     
     @pytest.mark.asyncio
     async def test_diagnosis(self, test_diagnosis_input):
-        """ทดสอบการวินิจฉัย"""
+        """ทดสอบการวินิจฉัย
+        
+        Steps:
+        1. เตรียม service
+        2. ส่งข้อมูลเข้าวินิจฉัย
+        3. ตรวจสอบผลลัพธ์
+        """
         service = AIDiagnosisService()
         await service.initialize()
         
@@ -56,7 +106,13 @@ class TestAIDiagnosisService:
         assert result.recommendation
     
     def test_warning_signs(self):
-        """ทดสอบการตรวจจับสัญญาณอันตราย"""
+        """ทดสอบการตรวจจับสัญญาณอันตราย
+        
+        Steps:
+        1. ทดสอบกับอาการปกติ
+        2. ทดสอบกับอาการอันตราย
+        3. ตรวจสอบการแจ้งเตือน
+        """
         service = AIDiagnosisService()
         
         # ทดสอบอาการปกติ
@@ -70,10 +126,22 @@ class TestAIDiagnosisService:
         assert len(warnings) == 2
 
 class TestDiagnosisAPI:
-    """ทดสอบ API endpoints"""
+    """ทดสอบ API endpoints
+    
+    คำอธิบายสำหรับนักศึกษา:
+    - ใช้ TestClient จาก FastAPI
+    - ทดสอบการเรียก API ในรูปแบบต่างๆ
+    - ตรวจสอบ response codes และ data
+    """
     
     def test_diagnosis_endpoint(self, mock_ai_service, test_diagnosis_input):
-        """ทดสอบ endpoint การวินิจฉัย"""
+        """ทดสอบ endpoint การวินิจฉัย
+        
+        Steps:
+        1. เตรียม test client
+        2. ส่ง request ไปที่ endpoint
+        3. ตรวจสอบ response
+        """
         client = TestClient(app)
         
         response = client.post(
@@ -88,7 +156,12 @@ class TestDiagnosisAPI:
         assert "recommendation" in data
     
     def test_missing_symptoms(self, mock_ai_service):
-        """ทดสอบกรณีไม่ระบุอาการ"""
+        """ทดสอบกรณีไม่ระบุอาการ
+        
+        Steps:
+        1. ส่ง request โดยไม่ระบุอาการ
+        2. ตรวจสอบ error response
+        """
         client = TestClient(app)
         
         response = client.post(
@@ -99,10 +172,14 @@ class TestDiagnosisAPI:
         assert response.status_code == 422
     
     def test_unauthorized_access(self, mock_ai_service, test_diagnosis_input):
-        """ทดสอบกรณีไม่มีสิทธิ์ใช้งาน"""
+        """ทดสอบกรณีไม่มีสิทธิ์ใช้งาน
+        
+        Steps:
+        1. ส่ง request โดยไม่มี token
+        2. ตรวจสอบ error response
+        """
         client = TestClient(app)
         
-        # ไม่ส่ง token
         response = client.post(
             "/api/v1/diagnosis/diagnose",
             json=test_diagnosis_input.dict()
@@ -111,10 +188,22 @@ class TestDiagnosisAPI:
         assert response.status_code == 401
 
 class TestDiagnosisUI:
-    """ทดสอบส่วน UI"""
+    """ทดสอบส่วน UI
+    
+    คำอธิบายสำหรับนักศึกษา:
+    - ใช้ qtbot สำหรับจำลองการใช้งาน UI
+    - ทดสอบการทำงานของ components
+    - ตรวจสอบการแสดงผลข้อมูล
+    """
     
     def test_input_validation(self, qtbot):
-        """ทดสอบการตรวจสอบข้อมูลนำเข้า"""
+        """ทดสอบการตรวจสอบข้อมูลนำเข้า
+        
+        Steps:
+        1. สร้าง widget สำหรับรับข้อมูล
+        2. ทดสอบกรณีไม่กรอกข้อมูล
+        3. ทดสอบกรณีกรอกข้อมูลถูกต้อง
+        """
         from frontend.src.views.diagnosis_view import SymptomInput
         
         widget = SymptomInput()
@@ -131,7 +220,13 @@ class TestDiagnosisUI:
         assert "ไข้" in data["symptoms"]
     
     def test_result_display(self, qtbot):
-        """ทดสอบการแสดงผลลัพธ์"""
+        """ทดสอบการแสดงผลลัพธ์
+        
+        Steps:
+        1. สร้าง widget แสดงผล
+        2. ส่งข้อมูลตัวอย่าง
+        3. ตรวจสอบการแสดงผล
+        """
         from frontend.src.views.diagnosis_view import DiagnosisResult
         
         widget = DiagnosisResult()

@@ -23,6 +23,77 @@
 - [ทีมงาน](#-ทีมงาน)
 - [ลิขสิทธิ์](#-ลิขสิทธิ์)
 
+## 📚 สำหรับนักศึกษา
+
+### โครงสร้างโปรเจค
+```
+meditech/
+├── backend/                 # ส่วน Backend API
+│   ├── app/                # โค้ดหลัก
+│   │   ├── api/           # API Endpoints
+│   │   ├── core/          # Core functionality
+│   │   ├── db/            # Database
+│   │   ├── models/        # Data models
+│   │   ├── schemas/       # Pydantic schemas
+│   │   └── services/      # Business logic
+│   └── tests/             # Unit tests
+├── frontend/               # ส่วน Frontend UI
+│   ├── src/
+│   │   ├── components/    # UI Components
+│   │   ├── styles/        # Stylesheets
+│   │   ├── utils/         # Utilities
+│   │   └── views/         # Page views
+│   └── tests/             # UI tests
+├── docs/                   # เอกสารประกอบ
+│   ├── api/               # API Documentation
+│   ├── database/          # Database Docs
+│   └── user_guide/        # User Manual
+└── tests/                 # Integration Tests
+```
+
+### คำอธิบายส่วนประกอบหลัก
+
+#### 1. Backend (FastAPI)
+- **api/**: จัดการ API endpoints และ routing
+- **core/**: ฟังก์ชันพื้นฐานและการตั้งค่า
+- **db/**: จัดการฐานข้อมูลและ migrations
+- **models/**: โมเดลข้อมูลสำหรับ SQLAlchemy
+- **schemas/**: กำหนดรูปแบบข้อมูล request/response
+- **services/**: Business logic และการประมวลผล
+
+#### 2. Frontend (PyQt6)
+- **components/**: UI components ที่ใช้ซ้ำได้
+- **styles/**: ธีมและการจัดรูปแบบ
+- **utils/**: ฟังก์ชันช่วยเหลือ
+- **views/**: หน้าจอหลักของแอพ
+
+#### 3. Tests
+- **Unit Tests**: ทดสอบฟังก์ชันย่อย
+- **Integration Tests**: ทดสอบการทำงานร่วมกัน
+- **UI Tests**: ทดสอบส่วนติดต่อผู้ใช้
+
+### แนวทางการศึกษา
+
+1. **เริ่มต้นที่ Backend**
+   - ศึกษาโครงสร้าง FastAPI
+   - เข้าใจการทำงานของ API
+   - เรียนรู้การจัดการฐานข้อมูล
+
+2. **ทำความเข้าใจ Frontend**
+   - เรียนรู้ PyQt6 Components
+   - ศึกษาการจัดการ State
+   - เข้าใจการเชื่อมต่อกับ API
+
+3. **การทดสอบ**
+   - เขียน Unit Tests
+   - ทดสอบ Integration
+   - ตรวจสอบ UI/UX
+
+4. **การ Deploy**
+   - ใช้ Docker
+   - ตั้งค่า Environment
+   - จัดการ Dependencies
+
 ## ✨ คุณสมบัติ
 
 ### 🤖 AI Diagnosis System
