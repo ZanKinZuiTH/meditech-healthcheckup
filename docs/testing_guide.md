@@ -1,4 +1,4 @@
-# คู่มือการทดสอบ MediTech HealthCheckup System
+# คู่มือการทดสอบระบบ MediTech HealthCheckup
 
 ## 📋 ภาพรวมการทดสอบ
 
@@ -208,3 +208,300 @@ jobs:
    - Code review feedback
    - Test optimization
    - Documentation updates 
+
+## 1. การทดสอบระบบ AI
+
+### 1.1 Unit Testing
+```python
+import pytest
+from app.services.ai_diagnosis import AIDiagnosisService
+
+def test_diagnosis_initialization():
+    service = AIDiagnosisService()
+    assert not service.initialized
+    
+    await service.initialize()
+    assert service.initialized
+    assert service.model is not None
+
+def test_diagnosis_result():
+    service = AIDiagnosisService()
+    result = await service.get_diagnosis({
+        "symptoms": ["ไข้", "ไอ"],
+        "age": 30,
+        "gender": "male"
+    })
+    
+    assert len(result.possible_conditions) > 0
+    assert 0 <= result.confidence_score <= 1
+    assert result.recommendation
+```
+
+### 1.2 Integration Testing
+```python
+from fastapi.testclient import TestClient
+from app.main import app
+
+def test_diagnosis_api():
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/diagnose",
+        json={
+            "symptoms": ["ไข้", "ปวดหัว"],
+            "age": 25,
+            "gender": "female"
+        }
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert "possible_conditions" in data
+```
+
+### 1.3 Performance Testing
+```python
+import time
+
+def test_diagnosis_performance():
+    service = AIDiagnosisService()
+    
+    start_time = time.time()
+    result = service.get_diagnosis({"symptoms": ["ไข้"]})
+    end_time = time.time()
+    
+    assert (end_time - start_time) < 2.0  # ต้องใช้เวลาน้อยกว่า 2 วินาที
+```
+
+## 2. การทดสอบ Frontend
+
+### 2.1 Component Testing
+```python
+def test_diagnosis_form(qtbot):
+    form = DiagnosisForm()
+    qtbot.addWidget(form)
+    
+    # ทดสอบการกรอกข้อมูล
+    qtbot.keyClicks(form.symptom_input, "ไข้")
+    qtbot.mouseClick(form.add_button, Qt.LeftButton)
+    
+    assert "ไข้" in form.get_symptoms()
+```
+
+### 2.2 UI Testing
+```python
+def test_result_display(qtbot):
+    display = DiagnosisResult()
+    qtbot.addWidget(display)
+    
+    test_data = {
+        "possible_conditions": ["ไข้หวัด", "ภูมิแพ้"],
+        "confidence_score": 0.85,
+        "recommendation": "ควรพักผ่อน"
+    }
+    
+    display.update_result(test_data)
+    assert "ไข้หวัด" in display.conditions_list.text()
+```
+
+## 3. การทดสอบ Backend
+
+### 3.1 API Testing
+```python
+def test_health_check():
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "healthy"}
+
+def test_protected_endpoint():
+    response = client.get(
+        "/api/v1/patients",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 200
+```
+
+### 3.2 Database Testing
+```python
+def test_patient_crud():
+    db = TestingSessionLocal()
+    
+    # Create
+    patient = Patient(name="ทดสอบ", age=30)
+    db.add(patient)
+    db.commit()
+    
+    # Read
+    saved_patient = db.query(Patient).first()
+    assert saved_patient.name == "ทดสอบ"
+```
+
+## 4. การทดสอบความปลอดภัย
+
+### 4.1 Authentication Testing
+```python
+def test_invalid_token():
+    response = client.get(
+        "/api/v1/patients",
+        headers={"Authorization": "Bearer invalid_token"}
+    )
+    assert response.status_code == 401
+
+def test_expired_token():
+    expired_token = create_expired_token()
+    response = client.get(
+        "/api/v1/patients",
+        headers={"Authorization": f"Bearer {expired_token}"}
+    )
+    assert response.status_code == 401
+```
+
+### 4.2 Authorization Testing
+```python
+def test_user_permissions():
+    # ทดสอบผู้ใช้ทั่วไป
+    response = client.post(
+        "/api/v1/admin/settings",
+        headers={"Authorization": f"Bearer {user_token}"}
+    )
+    assert response.status_code == 403
+    
+    # ทดสอบผู้ดูแลระบบ
+    response = client.post(
+        "/api/v1/admin/settings",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+```
+
+## 5. การทดสอบประสิทธิภาพ
+
+### 5.1 Load Testing
+```python
+from locust import HttpUser, task, between
+
+class MediTechUser(HttpUser):
+    wait_time = between(1, 3)
+    
+    @task
+    def diagnose(self):
+        self.client.post(
+            "/api/v1/diagnose",
+            json={"symptoms": ["ไข้", "ไอ"]}
+        )
+```
+
+### 5.2 Stress Testing
+```python
+def test_concurrent_requests():
+    async def make_request():
+        async with AsyncClient() as client:
+            return await client.post("/api/v1/diagnose")
+    
+    # ทดสอบ 100 requests พร้อมกัน
+    tasks = [make_request() for _ in range(100)]
+    results = await asyncio.gather(*tasks)
+    
+    # ตรวจสอบว่าทุก request สำเร็จ
+    assert all(r.status_code == 200 for r in results)
+```
+
+## 6. การทดสอบการใช้งานจริง
+
+### 6.1 End-to-End Testing
+```python
+def test_complete_workflow():
+    # 1. Login
+    token = client.post("/auth/token").json()["access_token"]
+    
+    # 2. Create patient
+    patient = client.post(
+        "/api/v1/patients",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"name": "ทดสอบ"}
+    ).json()
+    
+    # 3. Create appointment
+    appointment = client.post(
+        "/api/v1/appointments",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"patient_id": patient["id"]}
+    ).json()
+    
+    # 4. Record examination
+    examination = client.post(
+        "/api/v1/examinations",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"appointment_id": appointment["id"]}
+    ).json()
+    
+    assert examination["status"] == "completed"
+```
+
+### 6.2 Acceptance Testing
+```python
+def test_user_scenarios():
+    # ทดสอบการใช้งานตามสถานการณ์จริง
+    scenarios = [
+        test_new_patient_registration,
+        test_appointment_scheduling,
+        test_examination_recording,
+        test_report_generation
+    ]
+    
+    for scenario in scenarios:
+        scenario()
+```
+
+## 7. การรายงานผลการทดสอบ
+
+### 7.1 Test Coverage
+```bash
+# Generate coverage report
+pytest --cov=app --cov-report=html
+
+# View report
+open htmlcov/index.html
+```
+
+### 7.2 Test Results
+```python
+def generate_test_report():
+    """สร้างรายงานผลการทดสอบ"""
+    report = TestReport()
+    
+    # รวบรวมผลการทดสอบ
+    report.add_section("Unit Tests", run_unit_tests())
+    report.add_section("Integration Tests", run_integration_tests())
+    report.add_section("Performance Tests", run_performance_tests())
+    
+    # สร้าง PDF report
+    report.generate_pdf("test_report.pdf")
+```
+
+## 8. การแก้ไขข้อผิดพลาด
+
+### 8.1 Debugging Tools
+```python
+import pdb
+import logging
+
+def debug_diagnosis():
+    logging.debug("Starting diagnosis")
+    pdb.set_trace()
+    
+    result = ai_service.diagnose(symptoms)
+    logging.debug(f"Diagnosis result: {result}")
+    
+    return result
+```
+
+### 8.2 Error Handling
+```python
+try:
+    result = ai_service.diagnose(symptoms)
+except ModelNotFoundError:
+    logger.error("AI model not found")
+    raise HTTPException(status_code=500, detail="AI service unavailable")
+except ValidationError as e:
+    logger.error(f"Invalid input: {e}")
+    raise HTTPException(status_code=400, detail=str(e)) 
