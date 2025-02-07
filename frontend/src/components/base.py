@@ -1,196 +1,204 @@
 from PyQt6.QtWidgets import (
     QPushButton, QLineEdit, QLabel, QWidget, QVBoxLayout,
     QHBoxLayout, QTableWidget, QHeaderView, QComboBox,
-    QScrollArea, QSizePolicy
+    QScrollArea, QSizePolicy, QFrame
 )
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtGui import QFont, QIcon, QColor, QPalette, QGraphicsDropShadowEffect
 from ..styles.theme import Theme
 
 class BaseButton(QPushButton):
+    """ปุ่มพื้นฐานที่มีการออกแบบตามธีม"""
+    
     def __init__(self, text="", icon=None, variant="primary", size="base", parent=None):
         super().__init__(text, parent)
         self.variant = variant
         self.size = size
         if icon:
-            self.setIcon(QIcon(icon))
+            self.setIcon(icon)
         self.setup_style()
-
+        
     def setup_style(self):
-        # ขนาดปุ่ม
-        padding = {
-            "sm": (Theme.SPACING["xs"], Theme.SPACING["sm"]),
-            "base": (Theme.SPACING["sm"], Theme.SPACING["base"]),
-            "lg": (Theme.SPACING["base"], Theme.SPACING["lg"]),
-        }
-        font_size = {
-            "sm": Theme.FONT_SIZES["sm"],
-            "base": Theme.FONT_SIZES["base"],
-            "lg": Theme.FONT_SIZES["lg"],
+        # กำหนดสไตล์ตามประเภทปุ่ม
+        colors = {
+            'primary': Theme.COLORS['primary'],
+            'secondary': Theme.COLORS['secondary'],
+            'success': Theme.COLORS['success'],
+            'warning': Theme.COLORS['warning'],
+            'error': Theme.COLORS['error']
         }
         
-        # สีตามประเภท
-        colors = {
-            "primary": (Theme.PRIMARY, "#FFFFFF"),
-            "secondary": (Theme.SECONDARY, "#FFFFFF"),
-            "success": (Theme.SUCCESS, "#FFFFFF"),
-            "error": (Theme.ERROR, "#FFFFFF"),
-            "warning": (Theme.WARNING, "#212121"),
-            "info": (Theme.INFO, "#FFFFFF"),
+        # กำหนดขนาดปุ่ม
+        sizes = {
+            'sm': (Theme.SPACING['sm'], Theme.SPACING['base'], Theme.TYPOGRAPHY['fontSize']['sm']),
+            'base': (Theme.SPACING['base'], Theme.SPACING['lg'], Theme.TYPOGRAPHY['fontSize']['base']),
+            'lg': (Theme.SPACING['lg'], Theme.SPACING['xl'], Theme.TYPOGRAPHY['fontSize']['lg'])
         }
-
-        bg_color, text_color = colors.get(self.variant, colors["primary"])
-        p_v, p_h = padding.get(self.size, padding["base"])
-        f_size = font_size.get(self.size, font_size["base"])
-
+        
+        color = colors.get(self.variant, colors['primary'])
+        padding_v, padding_h, font_size = sizes.get(self.size, sizes['base'])
+        
         self.setStyleSheet(f"""
             QPushButton {{
-                background-color: {bg_color};
-                color: {text_color};
+                background-color: {color['main']};
+                color: {color['contrast']};
+                padding: {padding_v}px {padding_h}px;
+                border-radius: {Theme.BORDER_RADIUS['base']};
                 border: none;
-                padding: {p_v}px {p_h}px;
-                border-radius: {Theme.BORDER_RADIUS["base"]}px;
-                font-size: {f_size}px;
+                font-weight: {Theme.TYPOGRAPHY['fontWeight']['medium']};
+                font-size: {font_size}px;
             }}
             QPushButton:hover {{
-                background-color: {self.adjust_color(bg_color, -10)};
+                background-color: {color['dark']};
             }}
             QPushButton:pressed {{
-                background-color: {self.adjust_color(bg_color, -20)};
+                background-color: {color['light']};
             }}
             QPushButton:disabled {{
-                background-color: #BDBDBD;
-                color: #757575;
+                background-color: {Theme.COLORS['grey'][400]};
+                color: {Theme.COLORS['grey'][600]};
             }}
         """)
 
-    @staticmethod
-    def adjust_color(hex_color, factor):
-        # ปรับความสว่างของสี
-        r = int(hex_color[1:3], 16)
-        g = int(hex_color[3:5], 16)
-        b = int(hex_color[5:7], 16)
-        
-        r = max(0, min(255, r + factor))
-        g = max(0, min(255, g + factor))
-        b = max(0, min(255, b + factor))
-        
-        return f"#{r:02x}{g:02x}{b:02x}"
-
 class BaseInput(QLineEdit):
+    """ช่องกรอกข้อมูลพื้นฐานที่มีการออกแบบตามธีม"""
+    
     def __init__(self, placeholder="", label="", required=False, parent=None):
         super().__init__(parent)
-        self.placeholder = placeholder
-        self.label_text = label
+        self.label = label
         self.required = required
+        self.setPlaceholderText(placeholder)
         self.setup_ui()
-
+        
     def setup_ui(self):
-        self.setPlaceholderText(self.placeholder)
-        if self.required:
-            self.setStyleSheet(f"""
-                QLineEdit {{
-                    border: 1px solid #BDBDBD;
-                    padding: {Theme.SPACING["sm"]}px;
-                    border-radius: {Theme.BORDER_RADIUS["base"]}px;
-                    font-size: {Theme.FONT_SIZES["base"]}px;
-                }}
-                QLineEdit:focus {{
-                    border: 2px solid {Theme.PRIMARY};
-                }}
-                QLineEdit[required="true"] {{
-                    border-left: 3px solid {Theme.ERROR};
-                }}
-            """)
-        else:
-            self.setStyleSheet(f"""
-                QLineEdit {{
-                    border: 1px solid #BDBDBD;
-                    padding: {Theme.SPACING["sm"]}px;
-                    border-radius: {Theme.BORDER_RADIUS["base"]}px;
-                    font-size: {Theme.FONT_SIZES["base"]}px;
-                }}
-                QLineEdit:focus {{
-                    border: 2px solid {Theme.PRIMARY};
+        container = QWidget(self.parent())
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(Theme.SPACING['xs'])
+        
+        if self.label:
+            label_text = f"{self.label}{'*' if self.required else ''}"
+            label = QLabel(label_text, container)
+            label.setStyleSheet(f"""
+                QLabel {{
+                    color: {Theme.COLORS['grey'][900]};
+                    font-size: {Theme.TYPOGRAPHY['fontSize']['sm']}px;
+                    font-weight: {Theme.TYPOGRAPHY['fontWeight']['medium']};
                 }}
             """)
+            layout.addWidget(label)
+        
+        layout.addWidget(self)
+        
+        self.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {Theme.COLORS['grey'][100]};
+                color: {Theme.COLORS['grey'][900]};
+                padding: {Theme.SPACING['sm']}px;
+                border-radius: {Theme.BORDER_RADIUS['base']};
+                border: 1px solid {Theme.COLORS['grey'][300]};
+                font-size: {Theme.TYPOGRAPHY['fontSize']['base']}px;
+            }}
+            QLineEdit:focus {{
+                border: 2px solid {Theme.COLORS['primary']['main']};
+            }}
+            QLineEdit:disabled {{
+                background-color: {Theme.COLORS['grey'][200]};
+                color: {Theme.COLORS['grey'][600]};
+            }}
+        """)
 
 class BaseTable(QTableWidget):
+    """ตารางพื้นฐานที่มีการออกแบบตามธีม"""
+    
     def __init__(self, headers=None, parent=None):
         super().__init__(parent)
         self.headers = headers or []
         self.setup_ui()
-
+        
     def setup_ui(self):
         # ตั้งค่าหัวตาราง
         self.setColumnCount(len(self.headers))
         self.setHorizontalHeaderLabels(self.headers)
         
-        # จัดการขนาดคอลัมน์
-        header = self.horizontalHeader()
-        for i in range(len(self.headers)):
-            header.setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
-        
         # ตั้งค่าการแสดงผล
         self.setAlternatingRowColors(True)
         self.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.verticalHeader().setVisible(False)
+        self.horizontalHeader().setStretchLastSection(True)
         
         self.setStyleSheet(f"""
             QTableWidget {{
-                border: 1px solid #E0E0E0;
-                gridline-color: #E0E0E0;
-                background-color: white;
-                alternate-background-color: #F5F5F5;
-            }}
-            QHeaderView::section {{
-                background-color: white;
-                padding: {Theme.SPACING["sm"]}px;
+                background-color: {Theme.COLORS['grey'][100]};
+                color: {Theme.COLORS['grey'][900]};
                 border: none;
-                border-right: 1px solid #E0E0E0;
-                border-bottom: 1px solid #E0E0E0;
-                font-weight: bold;
+                gridline-color: {Theme.COLORS['grey'][300]};
             }}
             QTableWidget::item {{
-                padding: {Theme.SPACING["sm"]}px;
+                padding: {Theme.SPACING['sm']}px;
             }}
             QTableWidget::item:selected {{
-                background-color: {Theme.PRIMARY};
-                color: white;
+                background-color: {Theme.COLORS['primary']['light']};
+                color: {Theme.COLORS['primary']['contrast']};
+            }}
+            QHeaderView::section {{
+                background-color: {Theme.COLORS['grey'][200]};
+                color: {Theme.COLORS['grey'][900]};
+                padding: {Theme.SPACING['sm']}px;
+                border: none;
+                font-weight: {Theme.TYPOGRAPHY['fontWeight']['medium']};
             }}
         """)
 
 class BaseComboBox(QComboBox):
+    """คอมโบบ็อกซ์พื้นฐานที่มีการออกแบบตามธีม"""
+    
     def __init__(self, items=None, label="", parent=None):
         super().__init__(parent)
-        self.label_text = label
+        self.label = label
         if items:
             self.addItems(items)
         self.setup_ui()
-
+        
     def setup_ui(self):
+        container = QWidget(self.parent())
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(Theme.SPACING['xs'])
+        
+        if self.label:
+            label = QLabel(self.label, container)
+            label.setStyleSheet(f"""
+                QLabel {{
+                    color: {Theme.COLORS['grey'][900]};
+                    font-size: {Theme.TYPOGRAPHY['fontSize']['sm']}px;
+                    font-weight: {Theme.TYPOGRAPHY['fontWeight']['medium']};
+                }}
+            """)
+            layout.addWidget(label)
+        
+        layout.addWidget(self)
+        
         self.setStyleSheet(f"""
             QComboBox {{
-                border: 1px solid #BDBDBD;
-                padding: {Theme.SPACING["sm"]}px;
-                border-radius: {Theme.BORDER_RADIUS["base"]}px;
-                background-color: white;
+                background-color: {Theme.COLORS['grey'][100]};
+                color: {Theme.COLORS['grey'][900]};
+                padding: {Theme.SPACING['sm']}px;
+                border-radius: {Theme.BORDER_RADIUS['base']};
+                border: 1px solid {Theme.COLORS['grey'][300]};
+                font-size: {Theme.TYPOGRAPHY['fontSize']['base']}px;
             }}
             QComboBox:focus {{
-                border: 2px solid {Theme.PRIMARY};
+                border: 2px solid {Theme.COLORS['primary']['main']};
             }}
             QComboBox::drop-down {{
                 border: none;
             }}
             QComboBox::down-arrow {{
-                image: url(resources/icons/arrow_down.png);
+                image: url(resources/icons/chevron-down.svg);
                 width: 12px;
                 height: 12px;
-            }}
-            QComboBox QAbstractItemView {{
-                border: 1px solid #BDBDBD;
-                selection-background-color: {Theme.PRIMARY};
-                selection-color: white;
             }}
         """)
 
@@ -222,47 +230,63 @@ class ResponsiveWidget(QWidget):
     def add_layout(self, layout):
         self.content_layout.addLayout(layout)
 
-class Card(QWidget):
+class Card(QFrame):
+    """การ์ดที่มีการออกแบบตามธีม"""
+    
     def __init__(self, title="", parent=None):
         super().__init__(parent)
         self.title = title
         self.setup_ui()
-
+        
     def setup_ui(self):
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(
+            Theme.SPACING['lg'],
+            Theme.SPACING['lg'],
+            Theme.SPACING['lg'],
+            Theme.SPACING['lg']
+        )
+        layout.setSpacing(Theme.SPACING['base'])
         
-        # Title
         if self.title:
-            title_label = QLabel(self.title)
-            title_label.setFont(QFont("", Theme.FONT_SIZES["lg"], QFont.Weight.Bold))
+            title_label = QLabel(self.title, self)
+            title_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {Theme.COLORS['grey'][900]};
+                    font-size: {Theme.TYPOGRAPHY['fontSize']['lg']}px;
+                    font-weight: {Theme.TYPOGRAPHY['fontWeight']['bold']};
+                }}
+            """)
             layout.addWidget(title_label)
-
-        # Content Widget
-        self.content = QWidget()
-        self.content_layout = QVBoxLayout(self.content)
-        layout.addWidget(self.content)
-
-        # Style
+        
+        self.content_widget = QWidget(self)
+        self.content_layout = QVBoxLayout(self.content_widget)
+        self.content_layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.content_widget)
+        
         self.setStyleSheet(f"""
             Card {{
-                background-color: white;
-                border-radius: {Theme.BORDER_RADIUS["lg"]}px;
-                padding: {Theme.SPACING["lg"]}px;
+                background-color: {Theme.COLORS['grey'][100]};
+                border-radius: {Theme.BORDER_RADIUS['lg']};
+                border: 1px solid {Theme.COLORS['grey'][200]};
             }}
         """)
+        
+        # เพิ่มเงา
         self.setGraphicsEffect(self.create_shadow())
-
+    
     def add_widget(self, widget):
+        """เพิ่ม widget ลงในการ์ด"""
         self.content_layout.addWidget(widget)
-
+    
     def add_layout(self, layout):
+        """เพิ่ม layout ลงในการ์ด"""
         self.content_layout.addLayout(layout)
-
+    
     def create_shadow(self):
-        from PyQt6.QtWidgets import QGraphicsDropShadowEffect
-        from PyQt6.QtGui import QColor
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(20)
+        """สร้างเงาให้การ์ด"""
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(15)
         shadow.setXOffset(0)
         shadow.setYOffset(4)
         shadow.setColor(QColor(0, 0, 0, 30))

@@ -3,38 +3,58 @@
 
 # Clear and Configure Aliases
 function Initialize-SafeEnvironment {
-    # Remove all aliases first
-    Get-Alias | Remove-Item -Force -ErrorAction SilentlyContinue
+    # Remove all existing aliases
+    Get-Alias | ForEach-Object {
+        $aliasPath = 'Alias:\' + $_.Name
+        Remove-Item -Path $aliasPath -Force -ErrorAction SilentlyContinue
+    }
     
-    # Remove specific aliases
-    @('ps', 'PS') | ForEach-Object {
-        if (Test-Path "Alias:$_") {
-            Remove-Item "Alias:$_" -Force -ErrorAction SilentlyContinue
+    # Explicitly remove problematic aliases
+    $problematicAliases = @('ps', 'PS', 'gp', 'GPS')
+    foreach ($alias in $problematicAliases) {
+        $aliasPath = 'Alias:\' + $alias
+        if (Test-Path $aliasPath) {
+            Remove-Item $aliasPath -Force -ErrorAction SilentlyContinue
+            Write-Output ('Removed alias: ' + $alias)
         }
     }
     
-    # Disable alias creation
+    # Prevent creation of new aliases
     $ExecutionContext.SessionState.PSVariable.Set('AllowAliasCreation', $false)
+    
+    # Verify removal
+    $remainingAliases = Get-Alias | Where-Object { $problematicAliases -contains $_.Name }
+    if ($remainingAliases) {
+        $aliasNames = $remainingAliases.Name -join ', '
+        Write-Warning ('Some problematic aliases could not be removed: ' + $aliasNames)
+    }
 }
 
+# Run initialization
+Write-Output "Initializing safe environment..."
 Initialize-SafeEnvironment
 
 # Configure Console
 function Set-ConsoleConfiguration {
     try {
-        # Create size objects
+        # Create size objects with explicit type names
         $bufferSize = New-Object -TypeName System.Management.Automation.Host.Size -ArgumentList 120, 3000
         $windowSize = New-Object -TypeName System.Management.Automation.Host.Size -ArgumentList 120, 30
         
-        # Set sizes
-        $Host.UI.RawUI.BufferSize = $bufferSize
-        $Host.UI.RawUI.WindowSize = $windowSize
+        # Set sizes with error checking
+        try {
+            $Host.UI.RawUI.BufferSize = $bufferSize
+            $Host.UI.RawUI.WindowSize = $windowSize
+        }
+        catch {
+            Write-Warning "Could not set console size: $($_.Exception.Message)"
+        }
         
-        # Configure encoding
+        # Configure encoding with explicit UTF-8
         [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
         $global:OutputEncoding = [System.Text.Encoding]::UTF8
         
-        # Set environment
+        # Set environment variables
         $env:LANG = "en_US.UTF-8"
         $env:LC_ALL = "en_US.UTF-8"
         
@@ -49,7 +69,7 @@ function Set-ConsoleConfiguration {
 # Configure Script Analysis
 function Set-ScriptAnalysis {
     try {
-        # Define rules
+        # Define strict analyzer settings
         $analyzerSettings = @{
             IncludeDefaultRules = $true
             Rules = @{
@@ -64,6 +84,12 @@ function Set-ScriptAnalysis {
                     Enable = $true
                 }
                 PSUseConsistentIndentation = @{
+                    Enable = $true
+                }
+                PSAvoidGlobalVars = @{
+                    Enable = $true
+                }
+                PSUseDeclaredVarsMoreThanAssignments = @{
                     Enable = $true
                 }
             }
@@ -143,5 +169,5 @@ $loadedFeatures = @(
     "Alias safety measures applied"
 )
 
-Write-Output "MediTech PowerShell Profile loaded with:"
+Write-Output "`nMediTech PowerShell Profile loaded with:"
 $loadedFeatures | ForEach-Object { Write-Output "- $_" } 

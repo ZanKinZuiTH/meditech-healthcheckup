@@ -1,15 +1,19 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QStackedWidget, QLabel, QErrorMessage, QMessageBox
+    QStackedWidget, QLabel, QErrorMessage, QMessageBox, QSpacerItem, QSizePolicy
 )
 from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QIcon, QFont
 from typing import Optional, List, Dict, Any, cast
-from ..components.base import BaseButton, ResponsiveWidget
+from ..styles.theme import Theme
+from ..components.base import BaseButton, ResponsiveWidget, Card
 from ..components.reports import ReportGenerator
 from .patient_view import PatientView
 from .appointment_view import AppointmentView
 from .examination_view import ExaminationView
 from ..services.api import APIError, APIClient
+from ..components.sidebar import Sidebar
+from ..components.header import Header
 
 class MainWindow(QMainWindow):
     error_occurred = pyqtSignal(str)  # Signal for error handling
@@ -55,70 +59,95 @@ class MainWindow(QMainWindow):
 
     def setup_ui(self) -> None:
         try:
+            # ตั้งค่าขนาดหน้าจอ
+            self.resize(1280, 800)
+            self.setMinimumSize(1024, 768)
+            
             # สร้าง Central Widget
             central_widget = QWidget()
             self.setCentralWidget(central_widget)
             
             # Layout หลัก
             main_layout = QHBoxLayout(central_widget)
+            main_layout.setContentsMargins(0, 0, 0, 0)
+            main_layout.setSpacing(0)
             
             # Sidebar
-            sidebar = self.create_sidebar()
-            main_layout.addWidget(sidebar)
+            self.sidebar = Sidebar(self)
+            main_layout.addWidget(self.sidebar)
+            
+            # Container สำหรับ content
+            content_container = QWidget()
+            content_layout = QVBoxLayout(content_container)
+            content_layout.setContentsMargins(0, 0, 0, 0)
+            content_layout.setSpacing(0)
+            main_layout.addWidget(content_container)
+            
+            # Header
+            self.header = Header(self)
+            content_layout.addWidget(self.header)
             
             # Content Area
-            self.content_stack = QStackedWidget()
-            self.setup_content_views()
-            main_layout.addWidget(self.content_stack)
+            content_area = QWidget()
+            content_area.setObjectName("contentArea")
+            content_area_layout = QVBoxLayout(content_area)
+            content_area_layout.setContentsMargins(
+                Theme.SPACING['xl'],
+                Theme.SPACING['xl'],
+                Theme.SPACING['xl'],
+                Theme.SPACING['xl']
+            )
+            content_layout.addWidget(content_area)
             
-            # อัตราส่วน Sidebar:Content = 1:4
-            main_layout.setStretch(0, 1)
-            main_layout.setStretch(1, 4)
+            # Stacked Widget สำหรับหน้าต่างๆ
+            self.stacked_widget = QStackedWidget()
+            content_area_layout.addWidget(self.stacked_widget)
+            
+            # สไตล์
+            self.setup_style()
+            
+            self.setup_content_views()
 
         except Exception as e:
             self.error_occurred.emit(f"เกิดข้อผิดพลาดในการสร้าง UI: {str(e)}")
 
-    def create_sidebar(self) -> QWidget:
-        try:
-            sidebar = QWidget()
-            sidebar.setObjectName("sidebar")
-            layout = QVBoxLayout(sidebar)
+    def setup_style(self):
+        self.setStyleSheet(f"""
+            QMainWindow {{
+                background-color: {Theme.COLORS['grey'][100]};
+            }}
             
-            # Logo
-            logo = QLabel("MediTech")
-            logo.setObjectName("logo")
-            layout.addWidget(logo)
+            #contentArea {{
+                background-color: {Theme.COLORS['grey'][100]};
+            }}
             
-            # Menu Buttons
-            self.create_menu_buttons(layout)
+            QLabel#pageTitle {{
+                color: {Theme.COLORS['grey'][900]};
+                font-size: {Theme.TYPOGRAPHY['fontSize']['2xl']}px;
+                font-weight: {Theme.TYPOGRAPHY['fontWeight']['bold']};
+            }}
             
-            # Settings Button
-            settings_btn = BaseButton("ตั้งค่า", variant="secondary")
-            settings_btn.clicked.connect(self.show_settings)
-            layout.addWidget(settings_btn)
-            
-            layout.addStretch()
-            return sidebar
-        except Exception as e:
-            self.error_occurred.emit(f"เกิดข้อผิดพลาดในการสร้าง Sidebar: {str(e)}")
-            return QWidget()
+            QLabel#pageDescription {{
+                color: {Theme.COLORS['grey'][600]};
+                font-size: {Theme.TYPOGRAPHY['fontSize']['base']}px;
+            }}
+        """)
 
-    def create_menu_buttons(self, layout: QVBoxLayout) -> None:
-        try:
-            # ปุ่มเมนูหลัก
-            buttons = [
-                ("ผู้ป่วย", self.show_patients),
-                ("นัดหมาย", self.show_appointments),
-                ("ผลตรวจ", self.show_examinations),
-                ("รายงาน", self.show_reports)
-            ]
-            
-            for text, slot in buttons:
-                btn = BaseButton(text, variant="primary")
-                btn.clicked.connect(slot)
-                layout.addWidget(btn)
-        except Exception as e:
-            self.error_occurred.emit(f"เกิดข้อผิดพลาดในการสร้างปุ่มเมนู: {str(e)}")
+    def add_page(self, widget, name):
+        """เพิ่มหน้าใหม่เข้าไปใน stacked widget"""
+        self.stacked_widget.addWidget(widget)
+        widget.setObjectName(name)
+    
+    def show_page(self, name):
+        """แสดงหน้าตามชื่อที่กำหนด"""
+        for i in range(self.stacked_widget.count()):
+            if self.stacked_widget.widget(i).objectName() == name:
+                self.stacked_widget.setCurrentIndex(i)
+                break
+    
+    def set_page_title(self, title, description=""):
+        """ตั้งค่าชื่อและคำอธิบายของหน้า"""
+        self.header.set_title(title, description)
 
     def setup_content_views(self) -> None:
         try:
@@ -128,12 +157,12 @@ class MainWindow(QMainWindow):
             self.examination_view = ExaminationView()
             self.report_view = ReportGenerator()
             
-            if self.content_stack:
+            if self.stacked_widget:
                 # เพิ่มเข้า Stack
-                self.content_stack.addWidget(self.patient_view)
-                self.content_stack.addWidget(self.appointment_view)
-                self.content_stack.addWidget(self.examination_view)
-                self.content_stack.addWidget(self.report_view)
+                self.stacked_widget.addWidget(self.patient_view)
+                self.stacked_widget.addWidget(self.appointment_view)
+                self.stacked_widget.addWidget(self.examination_view)
+                self.stacked_widget.addWidget(self.report_view)
 
                 # เชื่อมต่อ error signals
                 self.patient_view.error_occurred.connect(self.show_error_dialog)
@@ -158,32 +187,32 @@ class MainWindow(QMainWindow):
     # Slot functions with error handling
     def show_patients(self) -> None:
         try:
-            if self.content_stack and self.patient_view:
-                self.content_stack.setCurrentWidget(self.patient_view)
+            if self.stacked_widget and self.patient_view:
+                self.stacked_widget.setCurrentWidget(self.patient_view)
                 self.set_state("viewing_patients")
         except Exception as e:
             self.error_occurred.emit(f"เกิดข้อผิดพลาดในการแสดงรายการผู้ป่วย: {str(e)}")
 
     def show_appointments(self) -> None:
         try:
-            if self.content_stack and self.appointment_view:
-                self.content_stack.setCurrentWidget(self.appointment_view)
+            if self.stacked_widget and self.appointment_view:
+                self.stacked_widget.setCurrentWidget(self.appointment_view)
                 self.set_state("viewing_appointments")
         except Exception as e:
             self.error_occurred.emit(f"เกิดข้อผิดพลาดในการแสดงการนัดหมาย: {str(e)}")
 
     def show_examinations(self) -> None:
         try:
-            if self.content_stack and self.examination_view:
-                self.content_stack.setCurrentWidget(self.examination_view)
+            if self.stacked_widget and self.examination_view:
+                self.stacked_widget.setCurrentWidget(self.examination_view)
                 self.set_state("viewing_examinations")
         except Exception as e:
             self.error_occurred.emit(f"เกิดข้อผิดพลาดในการแสดงผลการตรวจ: {str(e)}")
 
     def show_reports(self) -> None:
         try:
-            if self.content_stack and self.report_view:
-                self.content_stack.setCurrentWidget(self.report_view)
+            if self.stacked_widget and self.report_view:
+                self.stacked_widget.setCurrentWidget(self.report_view)
                 self.set_state("viewing_reports")
         except Exception as e:
             self.error_occurred.emit(f"เกิดข้อผิดพลาดในการแสดงรายงาน: {str(e)}")
